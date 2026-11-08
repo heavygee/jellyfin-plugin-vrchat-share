@@ -4,8 +4,8 @@
     <JellyfinTarget Condition="'$(JellyfinTarget)' == ''">jf12</JellyfinTarget>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <AssemblyVersion>0.1.1.0</AssemblyVersion>
-    <FileVersion>0.1.1.0</FileVersion>
+    <AssemblyVersion>0.1.2.0</AssemblyVersion>
+    <FileVersion>0.1.2.0</FileVersion>
     <RootNamespace>Jellyfin.Plugin.VrchatShare</RootNamespace>
     <AssemblyName>Jellyfin.Plugin.VrchatShare</AssemblyName>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>

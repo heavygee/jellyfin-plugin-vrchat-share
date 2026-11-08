@@ -1,10 +1,14 @@
 # Changelog
 
+## 0.1.2.0 — 2026-11-08
+
+- Remove the detail-page bordered **VRChat** text button (overflow menu only)
+- Keeps modern MoreCommands capture + `#/details?id=` resolution
+
 ## 0.1.1.0 — 2026-11-08
 
 - Fix: JF12 modern `.btnMoreCommands` never set item context (legacy `#itemDetailPage` only), so **Share in VRChat** never appeared and stock Share/`navigator.share` was the only option
 - Resolve item id from `#/details?id=`
-- Add a visible **VRChat** button next to ⋮ on detail pages
 
 ## 0.1.0.0 — 2026-11-08
 
