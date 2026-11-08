@@ -48,6 +48,16 @@ Useful for a quick estate smoke test while the plugin zip builds:
 
 4. Save → hard-refresh.
 
+## Brand / images
+
+Shared lounge motif with [vrchat-jellyfin](https://github.com/introVRt-Lounge/vrchat-jellyfin): dark `#0b0b10`, cyan neon `#00e5ff`, violet bridge accent `#AA5CC3`.
+
+| Asset | Path |
+|-------|------|
+| Plugin catalog icon | `Jellyfin.Plugin.VrchatShare/icon.png` |
+| Plugin wide thumb | `Jellyfin.Plugin.VrchatShare/thumb.png` |
+| Drop for vrchat-jellyfin (OG/favicon) | `assets/for-vrchat-jellyfin/` |
+
 ## Build
 
 ```bash
@@ -56,7 +66,7 @@ docker run --rm -v "$PWD":/src -w /src/Jellyfin.Plugin.VrchatShare \
   dotnet build -c Release -p:JellyfinTarget=jf12
 ```
 
-Zip the output DLL as Jellyfin expects (`meta.json` + dll) or use the GitHub Actions release workflow.
+Zip `Jellyfin.Plugin.VrchatShare.dll` + `icon.png` (+ optional `thumb.png`) or use the GitHub Actions release workflow.
 
 ## Deeplink contract
 

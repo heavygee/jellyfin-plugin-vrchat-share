@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.3.0 — 2026-11-08
+
+- Catalog / dashboard **icon.png** + **thumb.png** (lounge cyan + violet geometric bridge motif)
+- Sibling drop assets for vrchat-jellyfin under `assets/for-vrchat-jellyfin/` (og, favicon, icons)
+
 ## 0.1.2.0 — 2026-11-08
 
 - Remove the detail-page bordered **VRChat** text button (overflow menu only)
