@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>VRChat Share</title>
+</head>
+<body>
+    <div id="vrchatShareConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-checkbox">
+        <div data-role="content">
+            <div class="content-primary">
+                <form id="vrchatShareConfigForm">
+                    <div class="sectionTitleContainer flex align-items-center">
+                        <h2 class="sectionTitle">VRChat Share</h2>
+                    </div>
+                    <p>Adds a <strong>Share in VRChat</strong> action on Movie / Episode / Series / Season menus. Opens the configured vrchat-jellyfin deeplink <code>{BaseUrl}/item/{Id}</code>.</p>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label>
+                            <input is="emby-checkbox" type="checkbox" id="enabled" />
+                            <span>Enable Share in VRChat</span>
+                        </label>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel" for="baseUrl">vrchat-jellyfin base URL</label>
+                        <input is="emby-input" type="url" id="baseUrl" required />
+                        <div class="fieldDescription">No trailing slash. Default: https://vrchat.introvrtlounge.com</div>
+                    </div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label>
+                            <input is="emby-checkbox" type="checkbox" id="openInNewTab" />
+                            <span>Open deeplink in a new browser tab</span>
+                        </label>
+                    </div>
+
+                    <button is="emby-button" type="submit" class="raised button-submit block">
+                        <span>Save</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+        <script type="text/javascript">
+            (function () {
+                var pluginId = 'cd270bac-3700-5b4c-b9cf-16063654c16b';
+
+                function load() {
+                    ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                        document.querySelector('#enabled').checked = config.Enabled !== false;
+                        document.querySelector('#baseUrl').value = config.BaseUrl || 'https://vrchat.introvrtlounge.com';
+                        document.querySelector('#openInNewTab').checked = config.OpenInNewTab !== false;
+                    });
+                }
+
+                function save(e) {
+                    e.preventDefault();
+                    ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                        config.Enabled = document.querySelector('#enabled').checked;
+                        config.BaseUrl = (document.querySelector('#baseUrl').value || '').replace(/\/$/, '');
+                        config.OpenInNewTab = document.querySelector('#openInNewTab').checked;
+                        return ApiClient.updatePluginConfiguration(pluginId, config);
+                    }).then(function () {
+                        Dashboard.processPluginConfigurationUpdateResult();
+                    });
+                    return false;
+                }
+
+                document.querySelector('#vrchatShareConfigForm').addEventListener('submit', save);
+                view = document.querySelector('#vrchatShareConfigPage');
+                view.addEventListener('viewshow', load);
+                load();
+            })();
+        </script>
+    </div>
+</body>
+</html>

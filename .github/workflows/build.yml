@@ -1,0 +1,51 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Build jf12
+        run: dotnet build Jellyfin.Plugin.VrchatShare -c Release -p:JellyfinTarget=jf12
+      - name: Pack plugin zip
+        run: |
+          mkdir -p artifacts
+          DLL=$(find Jellyfin.Plugin.VrchatShare/bin/Release -name 'Jellyfin.Plugin.VrchatShare.dll' | head -1)
+          test -n "$DLL"
+          STAGE=artifacts/stage
+          mkdir -p "$STAGE"
+          cp "$DLL" "$STAGE/"
+          cat > "$STAGE/meta.json" <<'EOF'
+          {
+            "category": "General",
+            "changelog": "See CHANGELOG.md",
+            "description": "Share Jellyfin items into vrchat-jellyfin",
+            "guid": "cd270bac-3700-5b4c-b9cf-16063654c16b",
+            "name": "VRChat Share",
+            "overview": "Share in VRChat deeplink",
+            "owner": "heavygee",
+            "targetAbi": "12.0.0.0",
+            "timestamp": "2026-11-08T00:00:00Z",
+            "version": "0.1.0.0"
+          }
+          EOF
+          (cd "$STAGE" && zip -r ../Jellyfin.Plugin.VrchatShare_12.0.0.zip .)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: plugin-zip
+          path: artifacts/Jellyfin.Plugin.VrchatShare_12.0.0.zip
+      - name: Release on tag
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/Jellyfin.Plugin.VrchatShare_12.0.0.zip
