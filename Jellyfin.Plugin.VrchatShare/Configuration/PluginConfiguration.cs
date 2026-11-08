@@ -15,8 +15,9 @@ public class PluginConfiguration : BasePluginConfiguration
     /// <summary>
     /// Gets or sets the vrchat-jellyfin public base URL (no trailing slash).
     /// Deeplink target is <c>{BaseUrl}/item/{jellyfinItemId}</c>.
+    /// Must be set by the admin; there is no production default in the published plugin.
     /// </summary>
-    public string BaseUrl { get; set; } = "https://vrchat.introvrtlounge.com";
+    public string BaseUrl { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets or sets whether to open the deeplink in a new browser tab.

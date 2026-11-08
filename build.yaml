@@ -1,15 +1,15 @@
 ---
 name: "VRChat Share"
 guid: "cd270bac-3700-5b4c-b9cf-16063654c16b"
-version: "0.1.3.0"
+version: "0.1.4.0"
 targetAbi: "12.0.0.0"
 framework: "net10.0"
 overview: "Share Jellyfin library items into vrchat-jellyfin for VRChat minting"
 description: >
   Adds a Share in VRChat action on Movie, Episode, Series, and Season
   item menus. Opens {BaseUrl}/item/{Id} on a configured vrchat-jellyfin
-  instance (default https://vrchat.introvrtlounge.com). Pairs with the
-  introVRt-Lounge/vrchat-jellyfin /item/:id deeplink.
+  instance (admin sets BaseUrl; no production default ships in the plugin).
+  Pairs with introVRt-Lounge/vrchat-jellyfin /item/:id deeplink.
 category: "General"
 owner: "heavygee"
 artifacts:
@@ -17,6 +17,7 @@ artifacts:
   - "icon.png"
   - "thumb.png"
 changelog: >
+  0.1.4.0: Scrub live production BaseUrl from defaults/docs
   0.1.3.0: Catalog icon (lounge bridge motif) + HasImage
   0.1.2.0: Remove detail-page text button; overflow menu only
   0.1.1.0: Fix JF12 modern MoreCommands capture

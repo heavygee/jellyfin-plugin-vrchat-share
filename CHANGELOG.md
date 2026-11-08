@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.4.0 — 2026-11-08
+
+- Remove any production BaseUrl from published defaults, config copy, and client fallback
+- Admin must set BaseUrl; deeplink no-ops with a console warning until configured
+
 ## 0.1.3.0 — 2026-11-08
 
 - Catalog / dashboard **icon.png** + **thumb.png** (lounge cyan + violet geometric bridge motif)

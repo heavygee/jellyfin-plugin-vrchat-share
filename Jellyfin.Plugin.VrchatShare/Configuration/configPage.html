@@ -24,7 +24,7 @@
                     <div class="inputContainer">
                         <label class="inputLabel" for="baseUrl">vrchat-jellyfin base URL</label>
                         <input is="emby-input" type="url" id="baseUrl" required />
-                        <div class="fieldDescription">No trailing slash. Default: https://vrchat.introvrtlounge.com</div>
+                        <div class="fieldDescription">Required. Your vrchat-jellyfin origin, no trailing slash (example: https://vrchat-jellyfin.example).</div>
                     </div>
 
                     <div class="checkboxContainer checkboxContainer-withDescription">
@@ -47,7 +47,7 @@
                 function load() {
                     ApiClient.getPluginConfiguration(pluginId).then(function (config) {
                         document.querySelector('#enabled').checked = config.Enabled !== false;
-                        document.querySelector('#baseUrl').value = config.BaseUrl || 'https://vrchat.introvrtlounge.com';
+                        document.querySelector('#baseUrl').value = config.BaseUrl || '';
                         document.querySelector('#openInNewTab').checked = config.OpenInNewTab !== false;
                     });
                 }

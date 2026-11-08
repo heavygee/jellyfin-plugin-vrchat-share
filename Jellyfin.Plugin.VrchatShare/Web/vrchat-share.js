@@ -21,7 +21,7 @@
 
   var config = Object.assign({
     enabled: true,
-    baseUrl: 'https://vrchat.introvrtlounge.com',
+    baseUrl: '',
     openInNewTab: true
   }, window.__VRCHAT_SHARE_BOOT__ || {});
 
@@ -162,7 +162,11 @@
   function openDeeplink(itemId) {
     var id = normalizeId(itemId);
     if (!id) return;
-    var base = (config.baseUrl || 'https://vrchat.introvrtlounge.com').replace(/\/$/, '');
+    var base = String(config.baseUrl || '').replace(/\/$/, '');
+    if (!base) {
+      console.warn('[VRChat Share] BaseUrl is not configured — set it in Dashboard → Plugins → VRChat Share');
+      return;
+    }
     var target = base + '/item/' + encodeURIComponent(id);
     console.info('[VRChat Share] opening', target);
     if (config.openInNewTab) {

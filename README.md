@@ -8,7 +8,7 @@ Opens a configurable [vrchat-jellyfin](https://github.com/introVRt-Lounge/vrchat
 {BaseUrl}/item/{jellyfinItemId}
 ```
 
-Default base URL: `https://vrchat.introvrtlounge.com`
+Configure **Base URL** in Dashboard → Plugins → VRChat Share (your own vrchat-jellyfin origin; no trailing slash). There is no production default in the published plugin.
 
 Paired contract (Movie/Episode → mint modal; Series → `/tvshow/:id`; Season → `/season/:id`) lives in vrchat-jellyfin.
 
@@ -41,7 +41,7 @@ Useful for a quick estate smoke test while the plugin zip builds:
    ```js
    window.__VRCHAT_SHARE_BOOT__ = {
      enabled: true,
-     baseUrl: 'https://vrchat.introvrtlounge.com',
+     baseUrl: 'https://vrchat-jellyfin.example',
      openInNewTab: true
    };
    ```
