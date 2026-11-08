@@ -1,7 +1,7 @@
 ---
 name: "VRChat Share"
 guid: "cd270bac-3700-5b4c-b9cf-16063654c16b"
-version: "0.1.0.0"
+version: "0.1.1.0"
 targetAbi: "12.0.0.0"
 framework: "net10.0"
 overview: "Share Jellyfin library items into vrchat-jellyfin for VRChat minting"
@@ -15,4 +15,5 @@ owner: "heavygee"
 artifacts:
   - "Jellyfin.Plugin.VrchatShare.dll"
 changelog: >
+  0.1.1.0: Fix JF12 modern MoreCommands capture; add detail-page VRChat button
   0.1.0.0: Initial release — context menu deeplink + configurable base URL

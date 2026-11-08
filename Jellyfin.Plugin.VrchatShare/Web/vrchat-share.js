@@ -1,10 +1,6 @@
 /**
- * VRChat Share — Jellyfin item menu hook.
- * Opens {baseUrl}/item/{jellyfinItemId} (vrchat-jellyfin deeplink contract).
- *
- * Works as:
- * - Embedded plugin script registered via JavaScript Injector
- * - Standalone paste into JS Injector (set window.__VRCHAT_SHARE_BOOT__ first, optional)
+ * VRChat Share — Jellyfin item menu + detail-page hook (JF12 modern + legacy).
+ * Opens {baseUrl}/item/{jellyfinItemId}.
  */
 (function () {
   'use strict';
@@ -13,7 +9,8 @@
   window.__VRCHAT_SHARE_INSTALLED__ = true;
 
   var DATA_ID = 'vrchat-share';
-  var CONTEXT_TTL_MS = 5000;
+  var DETAIL_BTN_ID = 'vrchat-share-detail-btn';
+  var CONTEXT_TTL_MS = 8000;
   var ITEM_ROWS = [
     'addtocollection', 'addtoplaylist', 'share', 'edit', 'editimages', 'editsubtitles',
     'identify', 'moremediainfo', 'refresh', 'delete', 'download', 'copy-stream',
@@ -33,8 +30,7 @@
   var scheduled = false;
 
   function loadConfig() {
-    var url = '/VrchatShare/config';
-    return fetch(url, { credentials: 'same-origin' })
+    return fetch('/VrchatShare/config', { credentials: 'same-origin' })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (j) {
         if (!j) return;
@@ -45,7 +41,24 @@
       .catch(function () { /* keep boot/defaults */ });
   }
 
-  function detailItemId() {
+  /** JF12 modern details: /web/#/details?id=<guid> (also hash/search variants). */
+  function itemIdFromLocation() {
+    try {
+      var href = String(window.location.href || '');
+      var hash = String(window.location.hash || '');
+      var search = String(window.location.search || '');
+      var candidates = [search, hash, href];
+      for (var i = 0; i < candidates.length; i++) {
+        var m = candidates[i].match(/[?&#]id=([a-f0-9]{32})/i)
+          || candidates[i].match(/\/details\/([a-f0-9]{32})/i)
+          || candidates[i].match(/[?&#]id=([0-9a-f-]{36})/i);
+        if (m) return m[1].replace(/-/g, '');
+      }
+    } catch (e) { /* ignore */ }
+    return null;
+  }
+
+  function detailItemIdLegacy() {
     try {
       var page = document.querySelector('#itemDetailPage');
       if (!page) return null;
@@ -55,15 +68,32 @@
     }
   }
 
+  function normalizeId(id) {
+    if (!id) return null;
+    return String(id).replace(/-/g, '').toLowerCase();
+  }
+
   function capture(e) {
     var el = e.target instanceof Element ? e.target : null;
-    if (!el || el.closest('.actionSheet, .dialogContainer')) return;
+    if (!el || el.closest('.actionSheet, .dialogContainer, .MuiDialog-root')) return;
 
-    var more = el.closest('.btnMoreCommands');
-    if (more && more.closest('#itemDetailPage')) {
-      var detailId = detailItemId();
-      if (!detailId) { context = null; return; }
-      context = { itemId: detailId, type: null, opener: more, ts: Date.now() };
+    // JF12 modern + legacy more menu
+    var more = el.closest('.btnMoreCommands, button.btnMoreCommands, .MuiIconButton-root.btnMoreCommands');
+    if (more) {
+      var fromUrl = itemIdFromLocation();
+      var fromLegacy = detailItemIdLegacy();
+      var fromCard = null;
+      var cardNear = more.closest('.card[data-id], .listItem[data-id], [data-id][data-type]');
+      if (cardNear) fromCard = cardNear.getAttribute('data-id') || cardNear.dataset.id;
+      var itemId = normalizeId(fromCard || fromUrl || fromLegacy);
+      if (!itemId) {
+        context = null;
+        console.warn('[VRChat Share] MoreCommands click but no item id (url/card/legacy)');
+        return;
+      }
+      var type = cardNear ? (cardNear.getAttribute('data-type') || cardNear.dataset.type || null) : null;
+      context = { itemId: itemId, type: type, opener: more, ts: Date.now() };
+      console.debug('[VRChat Share] captured MoreCommands', context);
       return;
     }
 
@@ -74,10 +104,10 @@
       if (e.type !== 'contextmenu') context = null;
       return;
     }
-    var itemId = card.getAttribute('data-id') || card.dataset.id;
-    if (!itemId) { context = null; return; }
+    var cardId = normalizeId(card.getAttribute('data-id') || card.dataset.id);
+    if (!cardId) { context = null; return; }
     context = {
-      itemId: itemId,
+      itemId: cardId,
       type: card.getAttribute('data-type') || card.dataset.type || null,
       opener: e.type === 'contextmenu' ? card : button,
       ts: Date.now()
@@ -85,9 +115,10 @@
   }
 
   function activeScroller() {
-    return document.querySelector('.actionSheetScroller') ||
-      document.querySelector('.actionSheet .scrollContainer') ||
-      null;
+    return document.querySelector('.actionSheetScroller')
+      || document.querySelector('.actionSheet .scrollContainer')
+      || document.querySelector('.MuiDrawer-root .actionSheetScroller')
+      || null;
   }
 
   function buildRow(scroller) {
@@ -126,8 +157,11 @@
   }
 
   function openDeeplink(itemId) {
+    var id = normalizeId(itemId);
+    if (!id) return;
     var base = (config.baseUrl || 'https://vrchat.introvrtlounge.com').replace(/\/$/, '');
-    var target = base + '/item/' + encodeURIComponent(itemId);
+    var target = base + '/item/' + encodeURIComponent(id);
+    console.info('[VRChat Share] opening', target);
     if (config.openInNewTab) {
       window.open(target, '_blank', 'noopener,noreferrer');
     } else {
@@ -143,7 +177,7 @@
     var userId = ApiClient.getCurrentUserId();
     return ApiClient.getItem(userId, ctx.itemId)
       .then(function (item) { return (item && item.Type) || ctx.type || null; })
-      .catch(function () { return ctx.type || null; });
+      .catch(function () { return ctx.type || 'Movie'; });
   }
 
   function inject() {
@@ -161,10 +195,10 @@
 
     resolveType(ctx).then(function (type) {
       if (!scroller.isConnected) return;
-      if (!type || !ALLOWED_TYPES[type]) return;
+      // If type unknown, still show for deeplink (receiver routes Series/Season).
+      if (type && !ALLOWED_TYPES[type]) return;
       if (scroller.querySelector('[data-id="' + DATA_ID + '"]')) return;
 
-      // One press → one sheet; clear so later sheets do not reuse this item.
       if (context === ctx) context = null;
 
       var row = buildRow(scroller);
@@ -176,6 +210,7 @@
       if (share) share.before(row);
       else scroller.appendChild(row);
       fitSheet(scroller);
+      console.debug('[VRChat Share] injected menu row for', ctx.itemId, type);
     });
   }
 
@@ -197,10 +232,46 @@
     return false;
   }
 
+  /** Visible button next to ⋮ on details pages — does not rely on action sheet. */
+  function ensureDetailButton() {
+    if (!config.enabled) return;
+    var itemId = itemIdFromLocation() || detailItemIdLegacy();
+    if (!itemId) {
+      var stale = document.getElementById(DETAIL_BTN_ID);
+      if (stale) stale.remove();
+      return;
+    }
+    itemId = normalizeId(itemId);
+    var more = document.querySelector('.btnMoreCommands');
+    if (!more || !more.parentElement) return;
+    var existing = document.getElementById(DETAIL_BTN_ID);
+    if (existing) {
+      existing.dataset.itemId = itemId;
+      return;
+    }
+    var btn = document.createElement('button');
+    btn.id = DETAIL_BTN_ID;
+    btn.type = 'button';
+    btn.className = 'button-flat';
+    btn.title = 'Share in VRChat';
+    btn.setAttribute('aria-label', 'Share in VRChat');
+    btn.dataset.itemId = itemId;
+    btn.style.cssText = 'margin-inline:4px;padding:8px 12px;cursor:pointer;';
+    btn.textContent = 'VRChat';
+    btn.addEventListener('click', function (ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      openDeeplink(btn.dataset.itemId || itemIdFromLocation());
+    });
+    more.parentElement.insertBefore(btn, more);
+    console.debug('[VRChat Share] detail button added for', itemId);
+  }
+
   document.addEventListener('click', capture, true);
   document.addEventListener('contextmenu', capture, true);
 
   var observer = new MutationObserver(function (mutations) {
+    ensureDetailButton();
     if (scheduled || !context || !touchesSheet(mutations)) return;
     scheduled = true;
     requestAnimationFrame(function () {
@@ -210,7 +281,11 @@
   });
   observer.observe(document.documentElement, { childList: true, subtree: true });
 
+  window.addEventListener('hashchange', function () { ensureDetailButton(); });
+  window.addEventListener('popstate', function () { ensureDetailButton(); });
+
   loadConfig().then(function () {
+    ensureDetailButton();
     console.info('[VRChat Share] ready →', config.baseUrl + '/item/{Id}');
   });
 })();
