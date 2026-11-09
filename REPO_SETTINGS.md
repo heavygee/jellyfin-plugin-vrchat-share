@@ -3,6 +3,8 @@
 Snapshot of GitHub controls on `heavygee/jellyfin-plugin-vrchat-share`.
 Update when settings change so hardening state is auditable from the tree.
 
+**Last probe:** 2026-11-09 (post PR #7 merge + Tier H API runbook).
+
 ## Identity
 
 | | |
@@ -10,35 +12,35 @@ Update when settings change so hardening state is auditable from the tree.
 | Owner | `heavygee` |
 | `gh` CLI | `gh` (heavygee account) |
 | Visibility | **public** |
-| License | GPL-3.0-or-later (full text in `LICENSE`) |
+| License | GPL-3.0 (`spdx_id: GPL-3.0` detected by GitHub) |
 
 ## Branch protection (`main`)
 
-**Target state** (apply via the `gh` block below **after** the first green aggregate `ci` on `main` — do not claim enabled until that probe returns 200):
+| Control | State (probed) |
+|---------|----------------|
+| Required status checks | **`ci`** only (`strict: false`) |
+| Enforce admins | false (bypass stays available; do not use as routine) |
+| Allow force pushes | false |
+| Allow deletions | false |
+| Allow auto-merge | true |
+| Delete branch on merge | true |
+| Squash merge title/body | PR_TITLE / PR_BODY |
 
-- Require a pull request before merging
-- Require status checks: **`ci`** (aggregate) only
-- Require branches to be up to date before merging — **false** (avoids Dependabot rebase storms)
-- Allow auto-merge
-- Automatically delete head branches
-- Restrict force pushes
-- Never bypass rulesets as routine; stop and ask before admin override
+Never bypass rulesets as routine; stop and ask before admin override.
 
 ## GitHub Advanced Security (free for public)
 
-| Control | Target / how |
-|---------|--------------|
-| Secret scanning | enable via API after merge |
-| Secret scanning push protection | enable via API after merge |
-| CodeQL default setup | enable via API (`csharp`, `javascript-typescript`, `actions` after language probe) |
-| Code Quality | try REST; document skip if 403 |
-| Dependabot alerts | `PUT …/vulnerability-alerts` |
-| Dependabot security updates | `PUT …/automated-security-fixes` |
+| Control | State (probed 2026-11-09) |
+|---------|---------------------------|
+| Secret scanning | enabled |
+| Secret scanning push protection | enabled |
+| CodeQL default setup | configured — languages: `actions`, `csharp`, `javascript`, `javascript-typescript`, `typescript`; schedule weekly |
+| Code Quality | **unavailable** (REST 404) — skipped; not a merge blocker |
+| Dependabot alerts | enabled (`PUT …/vulnerability-alerts`) |
+| Dependabot security updates | enabled |
 | Dependabot version updates | `.github/dependabot.yml` (nuget + github-actions, weekly, `cooldown.default-days: 7`) |
-| Private vulnerability reporting | `PUT …/private-vulnerability-reporting` |
-| Dependency graph | usually on when Dependabot alerts are enabled |
-
-Update this table with **probe results** (date + `gh` JSON snippets) once the API runbook below has been executed.
+| Private vulnerability reporting | enabled |
+| Dependency graph | on with Dependabot alerts |
 
 ## In-repo CI gates
 
@@ -48,10 +50,12 @@ Update this table with **probe results** (date + `gh` JSON snippets) once the AP
 |-----|------|---|
 | `build` | `dotnet build` jf12 + plugin zip | yes |
 | `secret-scan` | gitleaks (`gitleaks/gitleaks-action@v3`) | yes |
-| `owasp-sast` | Semgrep `1.122.0` (OWASP + csharp + javascript + secrets + project rules) | yes |
-| `security-audit` | `dotnet list package --vulnerable` | yes |
+| `owasp-sast` | Semgrep `1.122.0` (OWASP + csharp + javascript + secrets + project rules + self-test) | yes |
+| `security-audit` | `dotnet list package --vulnerable` (High/Critical) | yes |
 | `ci` (aggregate) | sum of above (`if: always()`) | **required** for merge |
 | `merge-on-green` | Dependabot / `automerge` label after green `ci` | auto |
+
+Semgrep excludes `yaml.github-actions.security.github-actions-mutable-action-tag` so Dependabot can bump Actions major tags; supply-chain review is via Dependabot PRs + green `ci`.
 
 Dependabot PRs auto-merge on green `ci` (embedded `merge-on-green`). Human/agent PRs need the `automerge` label for the same path.
 
@@ -96,19 +100,11 @@ gh api -X PATCH "repos/$OWNER/$REPO" --input - <<'EOF'
 "squash_merge_commit_title":"PR_TITLE",
 "squash_merge_commit_message":"PR_BODY"}
 EOF
-# Probe languages before CodeQL configure — do not hardcode blind.
 gh api "repos/$OWNER/$REPO/languages"
 gh api -X PATCH "repos/$OWNER/$REPO/code-scanning/default-setup" \
   -f state=configured -f 'languages[]=actions' -f 'languages[]=csharp' \
   -f 'languages[]=javascript-typescript'
-gh api -X PATCH "repos/$OWNER/$REPO/code-quality/setup" \
-  -f state=configured -f 'languages[]=javascript-typescript' \
-  -f 'languages[]=csharp' || true
-```
-
-Branch protection (after first green `ci`):
-
-```bash
+# Code Quality: expected 404 on this repo (2026-11-09) — skip
 gh api -X PUT "repos/$OWNER/$REPO/branches/main/protection" --input - <<'EOF'
 {
   "required_status_checks": {"strict": false, "contexts": ["ci"]},
