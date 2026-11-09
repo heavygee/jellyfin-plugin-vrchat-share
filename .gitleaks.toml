@@ -1,0 +1,14 @@
+# gitleaks configuration — extends the default ruleset.
+# Doc: https://github.com/gitleaks/gitleaks/blob/master/config/gitleaks.toml
+# Syntax: [[allowlists]] (gitleaks >= 8.19); do not use deprecated [allowlist].
+# Do NOT path-allowlist `.github/` — that would skip scanning workflows entirely
+# (OR semantics on path vs regex without condition = "AND").
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Documented example origin placeholder in README / CONTRIBUTING."
+regexes = [
+  '''https://vrchat-jellyfin\.example''',
+]

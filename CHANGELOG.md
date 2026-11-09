@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Repo hygiene: perfect-github public baseline (aggregate `ci`, gitleaks, Semgrep OWASP, Dependabot, release.yml, full GPL-3.0 LICENSE)
+
 ## 0.1.4.0 — 2026-11-08
 
 - Remove any production BaseUrl from published defaults, config copy, and client fallback

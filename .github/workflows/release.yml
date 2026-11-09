@@ -1,0 +1,94 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  github-release:
+    name: GitHub release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
+      - name: Verify tag matches Directory.Build.props
+        run: |
+          set -euo pipefail
+          PROP_VERSION=$(grep -oP '(?<=<Version>)[^<]+' Directory.Build.props | head -1)
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          # Allow 0.1.4.0 tag form matching four-part assembly version,
+          # or shorter 0.1.4 when operators prefer SemVer without build.
+          if [[ "$PROP_VERSION" != "$TAG_VERSION" && "$PROP_VERSION" != "${TAG_VERSION}.0" && "${PROP_VERSION%.0}" != "$TAG_VERSION" ]]; then
+            echo "::error::tag $TAG_VERSION does not match Directory.Build.props Version $PROP_VERSION"
+            exit 1
+          fi
+          echo "PROP_VERSION=$PROP_VERSION" >> "$GITHUB_ENV"
+      - name: Build jf12
+        run: dotnet build Jellyfin.Plugin.VrchatShare -c Release -p:JellyfinTarget=jf12
+      - name: Pack plugin zip
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          DLL=$(find Jellyfin.Plugin.VrchatShare/bin/Release -name 'Jellyfin.Plugin.VrchatShare.dll' | head -1)
+          test -n "$DLL"
+          STAGE=artifacts/stage
+          rm -rf "$STAGE"
+          mkdir -p "$STAGE"
+          cp "$DLL" "$STAGE/"
+          cp Jellyfin.Plugin.VrchatShare/icon.png "$STAGE/" || true
+          cp Jellyfin.Plugin.VrchatShare/thumb.png "$STAGE/" || true
+          cat > "$STAGE/meta.json" <<EOF
+          {
+            "category": "General",
+            "changelog": "See CHANGELOG.md",
+            "description": "Share Jellyfin items into vrchat-jellyfin",
+            "guid": "cd270bac-3700-5b4c-b9cf-16063654c16b",
+            "name": "VRChat Share",
+            "overview": "Share in VRChat deeplink",
+            "owner": "heavygee",
+            "targetAbi": "12.0.0.0",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "version": "${PROP_VERSION}"
+          }
+          EOF
+          (cd "$STAGE" && zip -r ../Jellyfin.Plugin.VrchatShare_12.0.0.zip .)
+      - name: Extract changelog entry
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          awk -v ver="$version" '
+            BEGIN { found=0 }
+            /^## / {
+              if (found) exit
+              if (index($0, ver)) { found=1; next }
+            }
+            found { print }
+          ' CHANGELOG.md > /tmp/release-notes.md
+          if [[ ! -s /tmp/release-notes.md ]]; then
+            # Also try four-part PROP_VERSION match
+            awk -v ver="$PROP_VERSION" '
+              BEGIN { found=0 }
+              /^## / {
+                if (found) exit
+                if (index($0, ver)) { found=1; next }
+              }
+              found { print }
+            ' CHANGELOG.md > /tmp/release-notes.md
+          fi
+          if [[ ! -s /tmp/release-notes.md ]]; then
+            echo "Release $version" > /tmp/release-notes.md
+          fi
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v3
+        with:
+          body_path: /tmp/release-notes.md
+          files: artifacts/Jellyfin.Plugin.VrchatShare_12.0.0.zip
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}

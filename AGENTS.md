@@ -24,6 +24,10 @@ Before writing implementation code:
 - One-line typos, comment-only edits, or doc fixes with no behavior change.
 - Active production incident when the operator declares hotfix mode.
 
+## Branch protection
+
+Never bypass rulesets / branch protection as routine. If a required check or ruleset blocks a push, **stop and ask** before using admin override.
+
 ## Scope
 
 Public HeavyGee Jellyfin plugin. Deeplink receiver lives in `introVRt-Lounge/vrchat-jellyfin` (`/item/:id`). Coordinate contract changes with that repo before breaking URLs.
