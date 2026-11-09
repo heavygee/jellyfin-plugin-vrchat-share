@@ -14,29 +14,31 @@ Update when settings change so hardening state is auditable from the tree.
 
 ## Branch protection (`main`)
 
-Applied after first green aggregate `ci` on this baseline:
+**Target state** (apply via the `gh` block below **after** the first green aggregate `ci` on `main` — do not claim enabled until that probe returns 200):
 
 - Require a pull request before merging
 - Require status checks: **`ci`** (aggregate) only
 - Require branches to be up to date before merging — **false** (avoids Dependabot rebase storms)
-- Allow auto-merge — enabled
-- Automatically delete head branches — enabled
-- Restrict force pushes — enabled
+- Allow auto-merge
+- Automatically delete head branches
+- Restrict force pushes
 - Never bypass rulesets as routine; stop and ask before admin override
 
 ## GitHub Advanced Security (free for public)
 
-| Control | State |
-|---------|-------|
-| Secret scanning | enabled (API) |
-| Secret scanning push protection | enabled (API) |
-| CodeQL default setup | enabled (`csharp`, `javascript-typescript`, `actions` when Linguist reports them) |
-| Code Quality | enabled when REST returns 200; else document skip |
-| Dependabot alerts | enabled |
-| Dependabot security updates | enabled |
+| Control | Target / how |
+|---------|--------------|
+| Secret scanning | enable via API after merge |
+| Secret scanning push protection | enable via API after merge |
+| CodeQL default setup | enable via API (`csharp`, `javascript-typescript`, `actions` after language probe) |
+| Code Quality | try REST; document skip if 403 |
+| Dependabot alerts | `PUT …/vulnerability-alerts` |
+| Dependabot security updates | `PUT …/automated-security-fixes` |
 | Dependabot version updates | `.github/dependabot.yml` (nuget + github-actions, weekly, `cooldown.default-days: 7`) |
-| Private vulnerability reporting | enabled |
-| Dependency graph | on by default |
+| Private vulnerability reporting | `PUT …/private-vulnerability-reporting` |
+| Dependency graph | usually on when Dependabot alerts are enabled |
+
+Update this table with **probe results** (date + `gh` JSON snippets) once the API runbook below has been executed.
 
 ## In-repo CI gates
 

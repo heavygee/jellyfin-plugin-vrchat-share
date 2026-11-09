@@ -74,20 +74,24 @@ jobs:
   owasp-sast:
     name: owasp-sast
     runs-on: ubuntu-latest
-    container:
-      image: semgrep/semgrep:1.122.0
     steps:
       - uses: actions/checkout@v6
+      - name: Project rule self-test
+        run: bash scripts/owasp-self-test.sh
       - name: Semgrep OWASP gate
         run: |
-          semgrep scan \
-            --config p/owasp-top-ten \
-            --config p/csharp \
-            --config p/javascript \
-            --config p/secrets \
-            --config security/semgrep/ \
-            --error \
-            --metrics off
+          docker run --rm \
+            -v "$PWD:/src" \
+            -w /src \
+            semgrep/semgrep:1.122.0 \
+            semgrep scan \
+              --config p/owasp-top-ten \
+              --config p/csharp \
+              --config p/javascript \
+              --config p/secrets \
+              --config security/semgrep/ \
+              --error \
+              --metrics off
 
   security-audit:
     name: security-audit
@@ -102,10 +106,11 @@ jobs:
       - name: NuGet vulnerability audit
         run: |
           set -euo pipefail
-          # Fail on high/critical known vulnerabilities in the restore graph.
+          # Fail only when High/Critical severity rows appear in the report.
+          # "has the following vulnerable packages" alone can include Low/Moderate.
           dotnet list Jellyfin.Plugin.VrchatShare package --vulnerable --include-transitive 2>&1 | tee /tmp/nuget-vuln.txt
-          if grep -qiE 'has the following vulnerable packages|Severity.*(High|Critical)' /tmp/nuget-vuln.txt; then
-            echo "::error::Vulnerable NuGet packages detected"
+          if grep -qiE 'Severity[[:space:]]*:[[:space:]]*(High|Critical)|>(High|Critical)<' /tmp/nuget-vuln.txt; then
+            echo "::error::High/Critical NuGet vulnerabilities detected"
             exit 1
           fi
           echo "No high/critical NuGet vulnerabilities reported."
