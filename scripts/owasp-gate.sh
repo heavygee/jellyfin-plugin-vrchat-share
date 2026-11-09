@@ -13,6 +13,8 @@ CONFIG=(
   --config p/javascript
   --config p/secrets
   --config security/semgrep/
+  # See ci.yml: floating major tags + Dependabot for Actions.
+  --exclude-rule yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag
 )
 
 run_docker() {

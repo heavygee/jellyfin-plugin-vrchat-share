@@ -80,6 +80,9 @@ jobs:
         run: bash scripts/owasp-self-test.sh
       - name: Semgrep OWASP gate
         run: |
+          # Exclude mutable-action-tag: estate Dependabot bumps github-actions by
+          # major tag (@v6). Full SHA pins fight that path; supply-chain risk is
+          # accepted and reviewed via Dependabot PRs + green ci.
           docker run --rm \
             -v "$PWD:/src" \
             -w /src \
@@ -90,6 +93,7 @@ jobs:
               --config p/javascript \
               --config p/secrets \
               --config security/semgrep/ \
+              --exclude-rule yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag \
               --error \
               --metrics off
 
