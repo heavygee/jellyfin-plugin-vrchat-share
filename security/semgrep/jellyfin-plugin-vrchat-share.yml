@@ -1,0 +1,18 @@
+rules:
+  - id: js-eval-on-dynamic-input
+    languages: [javascript]
+    severity: ERROR
+    message: >
+      Avoid eval / Function on dynamic input in the Share-in-VRChat client hook.
+      Build URLs with encodeURIComponent and fixed path templates only.
+    pattern-either:
+      - pattern: eval(...)
+      - pattern: new Function(...)
+
+  - id: js-log-token-or-secret
+    languages: [javascript]
+    severity: WARNING
+    message: >
+      Do not console.log tokens, API keys, or jellyfin auth headers from the
+      injected script.
+    pattern-regex: 'console\.(log|debug|info|warn|error)\([^)]*(token|apikey|api_key|X-Emby|MediaBrowser)[^)]*\)'

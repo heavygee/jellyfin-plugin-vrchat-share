@@ -1,0 +1,153 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
+      - name: Build jf12
+        run: dotnet build Jellyfin.Plugin.VrchatShare -c Release -p:JellyfinTarget=jf12
+      - name: Pack plugin zip
+        run: |
+          set -euo pipefail
+          VERSION=$(grep -oP '(?<=<Version>)[^<]+' Directory.Build.props | head -1)
+          test -n "$VERSION"
+          mkdir -p artifacts
+          DLL=$(find Jellyfin.Plugin.VrchatShare/bin/Release -name 'Jellyfin.Plugin.VrchatShare.dll' | head -1)
+          test -n "$DLL"
+          STAGE=artifacts/stage
+          rm -rf "$STAGE"
+          mkdir -p "$STAGE"
+          cp "$DLL" "$STAGE/"
+          cp Jellyfin.Plugin.VrchatShare/icon.png "$STAGE/" || true
+          cp Jellyfin.Plugin.VrchatShare/thumb.png "$STAGE/" || true
+          cat > "$STAGE/meta.json" <<EOF
+          {
+            "category": "General",
+            "changelog": "See CHANGELOG.md",
+            "description": "Share Jellyfin items into vrchat-jellyfin",
+            "guid": "cd270bac-3700-5b4c-b9cf-16063654c16b",
+            "name": "VRChat Share",
+            "overview": "Share in VRChat deeplink",
+            "owner": "heavygee",
+            "targetAbi": "12.0.0.0",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "version": "${VERSION}"
+          }
+          EOF
+          (cd "$STAGE" && zip -r ../Jellyfin.Plugin.VrchatShare_12.0.0.zip .)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: plugin-zip
+          path: artifacts/Jellyfin.Plugin.VrchatShare_12.0.0.zip
+
+  secret-scan:
+    name: secret-scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: gitleaks
+        uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: .gitleaks.toml
+
+  owasp-sast:
+    name: owasp-sast
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep:1.122.0
+    steps:
+      - uses: actions/checkout@v6
+      - name: Semgrep OWASP gate
+        run: |
+          semgrep scan \
+            --config p/owasp-top-ten \
+            --config p/csharp \
+            --config p/javascript \
+            --config p/secrets \
+            --config security/semgrep/ \
+            --error \
+            --metrics off
+
+  security-audit:
+    name: security-audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
+      - name: Restore
+        run: dotnet restore Jellyfin.Plugin.VrchatShare
+      - name: NuGet vulnerability audit
+        run: |
+          set -euo pipefail
+          # Fail on high/critical known vulnerabilities in the restore graph.
+          dotnet list Jellyfin.Plugin.VrchatShare package --vulnerable --include-transitive 2>&1 | tee /tmp/nuget-vuln.txt
+          if grep -qiE 'has the following vulnerable packages|Severity.*(High|Critical)' /tmp/nuget-vuln.txt; then
+            echo "::error::Vulnerable NuGet packages detected"
+            exit 1
+          fi
+          echo "No high/critical NuGet vulnerabilities reported."
+
+  ci:
+    name: ci
+    runs-on: ubuntu-latest
+    needs: [build, secret-scan, owasp-sast, security-audit]
+    if: always()
+    steps:
+      - name: Aggregate result
+        run: |
+          if [[ "${{ contains(needs.*.result, 'failure') }}" == "true" ]]; then
+            echo "::error::One or more required jobs failed."
+            exit 1
+          fi
+          if [[ "${{ contains(needs.*.result, 'cancelled') }}" == "true" ]]; then
+            echo "::error::One or more required jobs were cancelled."
+            exit 1
+          fi
+          echo "All required jobs passed."
+
+  merge-on-green:
+    name: merge-on-green
+    needs: [ci]
+    if: >
+      github.event_name == 'pull_request' && needs.ci.result == 'success' &&
+      (github.event.pull_request.user.login == 'dependabot[bot]' ||
+      contains(github.event.pull_request.labels.*.name, 'automerge'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          STATE=$(gh pr view "${{ github.event.pull_request.number }}" --repo "${{ github.repository }}" --json state -q .state)
+          if [ "$STATE" = "OPEN" ]; then
+            gh pr merge "${{ github.event.pull_request.number }}" --repo "${{ github.repository }}" --squash --delete-branch
+          else
+            echo "PR already $STATE, skipping"
+          fi

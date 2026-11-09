@@ -1,0 +1,17 @@
+# gitleaks configuration — extends the default ruleset.
+# Doc: https://github.com/gitleaks/gitleaks/blob/master/config/gitleaks.toml
+# Syntax: [[allowlists]] (gitleaks >= 8.19); do not use deprecated [allowlist].
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Docs and example placeholders that look secret-shaped but are not."
+paths = [
+  '''(?i)docs/''',
+  '''(?i)\.github/''',
+]
+regexes = [
+  '''https://vrchat-jellyfin\.example''',
+  '''<token from your hub admin>''',
+]

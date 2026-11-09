@@ -1,5 +1,8 @@
 # jellyfin-plugin-vrchat-share
 
+[![CI](https://github.com/heavygee/jellyfin-plugin-vrchat-share/actions/workflows/ci.yml/badge.svg)](https://github.com/heavygee/jellyfin-plugin-vrchat-share/actions/workflows/ci.yml)
+[![License: GPL-3.0](https://img.shields.io/github/license/heavygee/jellyfin-plugin-vrchat-share)](LICENSE)
+
 Jellyfin plugin that adds **Share in VRChat** to the item hamburger / context menu.
 
 Opens a configurable [vrchat-jellyfin](https://github.com/introVRt-Lounge/vrchat-jellyfin) deeplink:
@@ -78,6 +81,17 @@ Zip `Jellyfin.Plugin.VrchatShare.dll` + `icon.png` (+ optional `thumb.png`) or u
 
 Auth: browser already holds Cloudflare Access cookies for the Lounge UI; the plugin only `window.open`s the URL.
 
+## Governance
+
+| Doc | Purpose |
+|-----|---------|
+| [CONTRIBUTING](CONTRIBUTING.md) | Setup, PR checklist, issues-first |
+| [SECURITY](SECURITY.md) | Private vulnerability reporting |
+| [SUPPORT](SUPPORT.md) | Where to ask for help |
+| [CODE_OF_CONDUCT](CODE_OF_CONDUCT.md) | Contributor Covenant 2.1 |
+| [REPO_SETTINGS](REPO_SETTINGS.md) | GitHub security / branch protection record |
+| [CHANGELOG](CHANGELOG.md) | Keep a Changelog |
+
 ## License
 
-GPL-3.0 (same family as most Jellyfin plugins).
+[GPL-3.0-or-later](LICENSE) (same family as most Jellyfin plugins).

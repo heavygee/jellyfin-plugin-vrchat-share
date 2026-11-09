@@ -1,0 +1,9 @@
+.git/
+artifacts/
+**/bin/
+**/obj/
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.zip
