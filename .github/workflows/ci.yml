@@ -53,7 +53,7 @@ jobs:
           }
           EOF
           (cd "$STAGE" && zip -r ../Jellyfin.Plugin.VrchatShare_12.0.0.zip .)
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: plugin-zip
           path: artifacts/Jellyfin.Plugin.VrchatShare_12.0.0.zip
